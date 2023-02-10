@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Models\Email_Verify;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -90,6 +91,53 @@ class AuthController extends Controller
                 'message' => $th->getMessage()
             ], 500);
         }
+    }
+
+    public function getVerifyToken(Request $request)
+    {
+        try {
+            $validateUser = Validator::make(
+                $request->all(),
+                [
+                    'email' => 'required|email|exists:users,email',
+                ]
+            );
+
+            if ($validateUser->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No account matching this email exists',
+                    'errors' => $validateUser->errors()
+                ], 401);
+            }
+
+            $uuid = User::where('email', $request->input("email"))->first()->uuid;
+            $verification = Email_Verify::where('user_uuid', '=', $uuid)->first();
+            if ($verification !== null) {
+                $verification->delete();
+            }
+
+            $verification = new Email_Verify();
+            $verification->user_uuid = $uuid;
+            $verification->save();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Email verification started',
+                'token' => $uuid
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => "an error has occurred: ".$th->getMessage()
+            ], 500);
+        }
+
+
+    }
+
+    public function verify(string $token) {
+
     }
 
     public function failure_no_token() {

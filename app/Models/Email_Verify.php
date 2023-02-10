@@ -11,5 +11,5 @@ class Email_Verify extends Model
     use HasFactory, HasUuids;
 
     protected $table = 'email_verify';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'token';
 }

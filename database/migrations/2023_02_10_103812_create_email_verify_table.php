@@ -14,8 +14,8 @@ return new class extends Migration
     public function up()
     {
         Schema::create('email_verify', function (Blueprint $table) {
-            $table->id();
-            $table->foreignUuid("user_uuid");
+            $table->uuid("token")->primary();
+            $table->foreignUuid("user_uuid")->unique();
             $table->timestamps();
 
             $table->foreign('user_uuid')->references('uuid')->on('users')->cascadeOnDelete();
