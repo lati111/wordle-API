@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\PersonalAccessToken;
 
+use function PHPSTORM_META\type;
+
 class AuthController extends Controller
 {
     public function createUser(Request $request)
@@ -103,6 +105,61 @@ class AuthController extends Controller
                 'status' => false,
                 'message' => $th->getMessage()
             ], 500);
+        }
+    }
+
+    public function refreshToken(Request $request) //consumes and returns new access token
+    {
+        $validateUser = Validator::make(
+            $request->all(),
+            [
+                'accessToken' => 'required'
+            ]
+        );
+
+        if ($validateUser->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validateUser->errors()
+            ], 401);
+        }
+
+
+        $accessToken = Token::findToken($request->accessToken);
+        if ($accessToken !== null) {
+            $accessToken = Token::where([["token", "=", $accessToken->token], ["name", "=", "auth"]]);
+            if ($accessToken->count() === 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Access token has already been consumed.',
+                ], 401);
+            }
+            $accessToken = $accessToken->first();
+
+            if ($accessToken->Owner->id === Auth::user()->id) {
+                $accessToken->delete();
+                $user = $accessToken->Owner;
+
+                $accessToken = $user->createToken("auth", ["auth"]);
+                Token::where("id", "=", $accessToken->accessToken->id)->first()->update(["expires_at" => now()->addHours(1)]);
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Access token refreshed',
+                    'accessToken' => $accessToken->plainTextToken
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tokens do not belong to the same set.',
+                ], 401);
+            }
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Access token has already been consumed.',
+            ], 401);
         }
     }
 
