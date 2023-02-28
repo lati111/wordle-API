@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Mail\ForgotPassword;
+use App\Models\Token;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -85,11 +87,16 @@ class AuthController extends Controller
             }
 
             $user = User::where('email', $request->email)->first();
+            $accessToken = $user->createToken("auth", ["auth"]);
+            $refreshToken = $user->createToken("refresh", ["refresh"]);
+            Token::where("id", "=", $accessToken->accessToken->id)->first()->update(["expires_at" => now()->addHours(1)]);
+            Token::where("id", "=", $refreshToken->accessToken->id)->first()->update(["expires_at" => now()->addDays(7)]);
 
             return response()->json([
                 'status' => true,
                 'message' => 'User Logged In Successfully',
-                'token' => $user->createToken("API TOKEN")->plainTextToken
+                'accessToken' => $accessToken->plainTextToken,
+                'refreshToken' => $refreshToken->plainTextToken
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
