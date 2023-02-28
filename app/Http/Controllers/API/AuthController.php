@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\Email_Verify;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +18,6 @@ class AuthController extends Controller
     public function createUser(Request $request)
     {
         try {
-            //Validated
             $validateUser = Validator::make(
                 $request->all(),
                 [
@@ -39,10 +41,11 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password)
             ]);
 
+            event(new Registered($user));
+
             return response()->json([
                 'status' => true,
-                'message' => 'User Created Successfully',
-                'token' => $user->createToken("API TOKEN")->plainTextToken
+                'message' => "User Created Successfully. A confirmation email has been sent to their account."
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
@@ -93,51 +96,18 @@ class AuthController extends Controller
         }
     }
 
-    public function getVerifyToken(Request $request)
+    public function verify(Request $request)
     {
-        try {
-            $validateUser = Validator::make(
-                $request->all(),
-                [
-                    'email' => 'required|email|exists:users,email',
-                ]
-            );
+        $user = User::find($request->route('id'));
 
-            if ($validateUser->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No account matching this email exists',
-                    'errors' => $validateUser->errors()
-                ], 401);
-            }
-
-            $uuid = User::where('email', $request->input("email"))->first()->uuid;
-            $verification = Email_Verify::where('user_uuid', '=', $uuid)->first();
-            if ($verification !== null) {
-                $verification->delete();
-            }
-
-            $verification = new Email_Verify();
-            $verification->user_uuid = $uuid;
-            $verification->save();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Email verification started',
-                'token' => $uuid
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'status' => false,
-                'message' => "an error has occurred: ".$th->getMessage()
-            ], 500);
+        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            throw new AuthorizationException();
         }
 
+        if ($user->markEmailAsVerified())
+            event(new Verified($user));
 
-    }
-
-    public function verify(string $token) {
-
+        // return redirect($this->redirectPath())->with('verified', true);
     }
 
     public function failure_no_token() {
