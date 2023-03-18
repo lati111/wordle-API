@@ -28,7 +28,6 @@ class AuthController extends Controller
             $validateUser = Validator::make(
                 $request->all(),
                 [
-                    'username' => 'required',
                     'email' => 'required|email|unique:users,email',
                     'password' => 'required'
                 ]
@@ -272,7 +271,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'status' => false,
-            'message' => 'Registering is only allowed through a get request, with a body containing a name, email and password in the form data',
+            'message' => 'Registering is only allowed through a post request, with a body containing an email and password in the form data',
         ], 401);
     }
 }
