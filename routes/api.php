@@ -35,3 +35,9 @@ Route::post('/client/new', [ClientController::class, 'newClient'])
 Route::post('/wordle/{client_key}/newgame', [WordleController::class, 'newGame'])
     ->middleware(['auth:sanctum'])
     ->name('wordle.new');
+Route::post('/wordle/{client_key}/setscore/{session_key}', [WordleController::class, 'setScore'])
+    ->middleware(['auth:sanctum', 'ability:auth'])
+    ->name('wordle.setscore');
+Route::post('/wordle/{client_key}/topscore', [WordleController::class, 'topscore'])
+    ->middleware(['auth:sanctum', 'ability:auth'])
+    ->name('wordle.topscore');

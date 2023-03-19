@@ -59,6 +59,116 @@ class WordleController extends Controller
         ], 200);
     }
 
+    public function setScore(Request $request, string $client_key, string $session_uuid) {
+        //| client validation
+        if (Client::where("uuid", "=", $client_key)->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'client error',
+                'errors' => "No client under key '".$client_key."' exists",
+            ], 404);
+        }
+
+        //| session validation
+        $session =
+            Session::where("uuid", "=", $session_uuid)
+            ->where("status", "=", "in progress")
+            ->where("user", "=", Auth::user()->uuid)
+            ->where("client", "=", $client_key);
+
+        if ($session->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => "No session under key '".$session_uuid."' exists",
+            ], 404);
+        }
+
+        //| score validation
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'score' => 'required|integer',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validator->errors()
+            ], 401);
+        }
+
+        //| data submitting
+        $session = $session->first();
+        $session->status = "finished";
+        $session->score = $request->score;
+        $session->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Score has been set',
+        ], 200);
+    }
+
+    public function topscore(Request $request, string $client_key) {
+        //| validate client
+        if (Client::where("uuid", "=", $client_key)->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'client error',
+                'errors' => "No client under key '".$client_key."' exists",
+            ], 404);
+        }
+
+        //| validate data
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'offset' => 'nullable|integer',
+                'limit' => 'nullable|integer|max:100',
+                'date' => 'nullable|date',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validator->errors()
+            ], 401);
+        }
+
+        //| build score query
+        $scores =
+            Session::where("client", "=", $client_key)
+            ->where("status", "=", "finished")
+            ->offset($request->input("offset", 0));
+        if ($request->date !== null) {
+            $scores = $scores->whereDate('updated_at','=', $request->date);
+        }
+        $scores = $scores
+            ->orderBy("score", "desc")
+            ->take($request->input("limit", 10))->get();
+
+        //| response
+        $scoreArray = [];
+        foreach($scores as $score) {
+            $scoreArray[] = [
+                "score" => $score->score,
+                "user" => $score->Owner->name,
+                "timestamp" => $score->updated_at,
+            ];
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'List of top scores',
+            'scores' => $scoreArray,
+        ], 200);
+    }
+
     private function getWords(int $amount) {
         $endpoint = "https://random-word-api.herokuapp.com/word";
         $client = new \GuzzleHttp\Client();
