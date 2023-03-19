@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\Wordle\Session;
 use App\Models\Wordle\Word;
 use Illuminate\Http\Request;
@@ -12,7 +13,15 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class WordleController extends Controller
 {
-    public function newGame(Request $request) {
+    public function newGame(Request $request, string $client_key) {
+        if (Client::where("uuid", "=", $client_key)->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'client error',
+                'errors' => "No client under key '".$client_key."' exists",
+            ], 404);
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
@@ -37,17 +46,10 @@ class WordleController extends Controller
             $session->words = $request->length;
             $wordCount = $request->length;
         }
+        $session->client = $client_key;
         $session->save();
         $sessionUuid = $session->uuid;
-
         $words = $this->getWords($wordCount);
-        for ($i=0; $i < count($words); $i++) {
-            $word = new Word();
-            $word->word = $words[$i];
-            $word->index = $i + 1;
-            $word->session = $sessionUuid;
-            $word->save();
-        }
 
         return response()->json([
             'status' => true,

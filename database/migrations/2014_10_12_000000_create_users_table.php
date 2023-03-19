@@ -20,7 +20,10 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->foreignUuid('client');
             $table->timestamps();
+
+            $table->foreign('client')->references('uuid')->on('client')->onDelete('cascade')->onUpdate('no action');
         });
     }
 

@@ -13,14 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('wordle__word', function (Blueprint $table) {
+        Schema::create('client', function (Blueprint $table) {
             $table->uuid('uuid')->primary();
-            $table->string('word', 5);
-            $table->integer('index');
-            $table->foreignUuid('session');
+            $table->string('name', 28)->unique;
+            $table->string('secretKey', 64);
             $table->timestamps();
-
-            $table->foreign('session')->references('uuid')->on('wordle__session')->onDelete('cascade')->onUpdate('no action');
         });
     }
 
@@ -31,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        //
+        Schema::dropIfExists('client');
     }
 };

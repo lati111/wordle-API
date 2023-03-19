@@ -17,10 +17,10 @@ class Authenticate extends Middleware
         if ($request->route()->getPrefix() === 'api') {
             if ($request->isMethod('post')) {
                 if (!$request->expectsJson()) {
-                    return route('login');
+                    return route('auth.fail.token.false');
                 }
             } else {
-                return route('auth.fail');
+                return route('auth.fail.token.none');
             }
         } else {
             return route('login.show');

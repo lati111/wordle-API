@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Mail\ForgotPassword;
+use App\Models\Client;
 use App\Models\Token;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Events\PasswordReset;
@@ -16,20 +17,25 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
-use Laravel\Sanctum\PersonalAccessToken;
-
-use function PHPSTORM_META\type;
 
 class AuthController extends Controller
 {
-    public function createUser(Request $request)
+    public function createUser(Request $request, string $client_key)
     {
         try {
+            if (Client::where("uuid", "=", $client_key)->count() === 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'client error',
+                    'errors' => "No client under key '".$client_key."' exists",
+                ], 404);
+            }
+
             $validateUser = Validator::make(
                 $request->all(),
                 [
                     'username' => 'required',
-                    'email' => 'required|email|unique:users,email',
+                    'email' => 'required|email',
                     'password' => 'required'
                 ]
             );
@@ -42,11 +48,20 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $user = User::create([
-                'name' => $request->username,
-                'email' => $request->email,
-                'password' => Hash::make($request->password)
-            ]);
+            if (User::where("email", "=", $request->email)->where("client", "=", $client_key)->count() > 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'validation error',
+                    'errors' => 'Email is already taken'
+                ], 401);
+            }
+
+            $user = new User();
+            $user->name = $request->username;
+            $user->email = $request->email;
+            $user->password = Hash::make($request->password);
+            $user->client = $client_key;
+            $user->save();
 
             event(new Registered($user));
 
@@ -62,9 +77,17 @@ class AuthController extends Controller
         }
     }
 
-    public function loginUser(Request $request)
+    public function loginUser(Request $request, string $client_key)
     {
         try {
+            if (Client::where("uuid", "=", $client_key)->count() === 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'client error',
+                    'errors' => "No client under key '".$client_key."' exists",
+                ], 404);
+            }
+
             $validateUser = Validator::make(
                 $request->all(),
                 [
@@ -81,17 +104,18 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            if (!Auth::attempt($request->only(['email', 'password']))) {
+
+            if (!Auth::attempt(['email' => $request->email, 'password' => $request->password, 'client' => $client_key])) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Email & Password does not match with our record.',
                 ], 401);
             }
 
-            $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->where("client", "=", $client_key)->first();
             $accessToken = $user->createToken("auth", ["auth"]);
             $refreshToken = $user->createToken("refresh", ["refresh"]);
-            Token::where("id", "=", $accessToken->accessToken->id)->first()->update(["expires_at" => now()->addHours(1)]);
+            Token::where("id", "=", $accessToken->accessToken->id)->first()->update(["expires_at" => now()->addDays(1)]);
             Token::where("id", "=", $refreshToken->accessToken->id)->first()->update(["expires_at" => now()->addDays(7)]);
 
             return response()->json([
@@ -163,7 +187,7 @@ class AuthController extends Controller
         }
     }
 
-    public function passwordForgot(Request $request) //sends a password reset email
+    public function passwordForgot(Request $request, string $client_key) //sends a password reset email
     {
         try {
             $validateUser = Validator::make(
@@ -181,7 +205,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $user = User::where('email', "=", $request->only('email'));
+            $user = User::where('email', "=", $request->only('email'))->where('client', "=", $client_key);
             if ($user->count() > 0) {
                 $token = Password::createToken($user->first());
                 Mail::to($request->only('email'))->send(new ForgotPassword("https://www.google.com", $token));
@@ -199,7 +223,7 @@ class AuthController extends Controller
         }
     }
 
-    public function resetPassword(Request $request) //resets a password
+    public function resetPassword(Request $request, string $client_key) //resets a password
     {
         try {
             $validateUser = Validator::make(
@@ -219,7 +243,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $user = User::where('email', "=", $request->email);
+            $user = User::where('email', "=", $request->email)->where('client', "=", $client_key);
             if (Password::tokenExists($user->first(), $request->token)) {
                 $user->update(["password" => Hash::make($request->password)]);
 
@@ -265,6 +289,14 @@ class AuthController extends Controller
         return response()->json([
             'status' => false,
             'message' => 'No token found in Authorization header',
+        ], 401);
+    }
+
+    public function failure_false_token()
+    {
+        return response()->json([
+            'status' => false,
+            'message' => 'Token could not be verified',
         ], 401);
     }
 
