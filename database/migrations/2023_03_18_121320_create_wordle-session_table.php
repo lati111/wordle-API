@@ -13,17 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('wordle_session', function (Blueprint $table) {
             $table->uuid('uuid')->primary();
-            $table->string('name')->nullable(true);
-            $table->string('email', 40)->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
+            $table->integer('score')->nullable(true);
+            $table->integer('words')->default(10);
+            $table->string('status', 18);
+            $table->foreignUuid('user');
             $table->foreignUuid('client');
             $table->timestamps();
 
             $table->foreign('client')->references('uuid')->on('client')->onDelete('cascade')->onUpdate('no action');
+            $table->foreign('user')->references('uuid')->on('users')->onDelete('cascade')->onUpdate('no action');
         });
     }
 
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('wordle_session');
     }
 };
