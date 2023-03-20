@@ -1,11 +1,11 @@
 # wordle-API
 
 HOW TO BOOT UP:
-Open up docker desktop program
-Open terminal in this folder and use the following commands:
-$ docker-compose up -d --detach --build
-$ docker-compose exec app bash
-$ php artisan migrate
+- Open up docker desktop program
+- Open terminal in this folder and use the following commands:
+- $ docker-compose up -d --detach --build
+- $ docker-compose exec app bash
+- $ php artisan migrate
 You can now close this terminal and use the API!
 
 URLs:
