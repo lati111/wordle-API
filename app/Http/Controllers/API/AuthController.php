@@ -68,8 +68,13 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => "User Created Successfully. A confirmation email has been sent to their account."
+                'message' => "User Created Successfully. Please log in to create a token"
             ], 200);
+
+            // return response()->json([
+            //     'status' => true,
+            //     'message' => "User Created Successfully. A confirmation email has been sent to their account."
+            // ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => false,
