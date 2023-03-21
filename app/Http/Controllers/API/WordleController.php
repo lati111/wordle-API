@@ -101,9 +101,14 @@ class WordleController extends Controller
         }
 
         //| data submitting
+        $words = $session->score - 1;
+
         $session = $session->first();
-        $session->status = "finished";
         $session->score = $request->score;
+        $session->words = $words;
+        if ($words === 0) {
+            $session->status = "in progress";
+        }
         $session->save();
 
         return response()->json([
@@ -112,7 +117,7 @@ class WordleController extends Controller
         ], 200);
     }
 
-    public function topscore(Request $request, string $client_key) {
+    public function topScore(Request $request, string $client_key) {
         //| validate client
         if (Client::where("uuid", "=", $client_key)->count() === 0) {
             return response()->json([
@@ -166,6 +171,39 @@ class WordleController extends Controller
             'status' => true,
             'message' => 'List of top scores',
             'scores' => $scoreArray,
+        ], 200);
+    }
+
+    public function getScore(string $client_key, string $session_uuid) {
+        //| client validation
+        if (Client::where("uuid", "=", $client_key)->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'client error',
+                'errors' => "No client under key '".$client_key."' exists",
+            ], 404);
+        }
+
+        //| session validation
+        $session =
+            Session::where("uuid", "=", $session_uuid)
+            ->where("user", "=", Auth::user()->uuid)
+            ->where("client", "=", $client_key);
+
+        if ($session->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => "No session under key '".$session_uuid."' exists",
+            ], 404);
+        }
+
+        //| response
+        return response()->json([
+            'status' => true,
+            'message' => 'Current score',
+            'session_uuid' => $session_uuid,
+            'score' => $session->first()->score,
         ], 200);
     }
 
