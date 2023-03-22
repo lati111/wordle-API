@@ -64,7 +64,7 @@ class AuthController extends Controller
             $user->client = $client_key;
             $user->save();
 
-            event(new Registered($user));
+            // event(new Registered($user));
 
             return response()->json([
                 'status' => true,
