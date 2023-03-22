@@ -41,7 +41,7 @@ Route::post('/wordle/{client_key}/setscore/{session_key}', [WordleController::cl
 Route::post('/wordle/{client_key}/currentscore/{session_uuid}', [WordleController::class, 'getScore'])
     ->middleware(['auth:sanctum', 'ability:auth'])
     ->name('wordle.topscore');
-Route::post('/wordle/{client_key}/topscore', [WordleController::class, 'topScore'])
+Route::get('/wordle/{client_key}/topscore', [WordleController::class, 'topScore'])
     ->middleware(['auth:sanctum', 'ability:auth'])
     ->name('wordle.topscore');
 
