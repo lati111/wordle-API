@@ -88,7 +88,7 @@ class WordleController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'score' => 'required|integer',
+                'score' => 'required|integer|max:250',
             ]
         );
 
@@ -101,9 +101,9 @@ class WordleController extends Controller
         }
 
         //| data submitting
-        $words = $session->score - 1;
-
         $session = $session->first();
+        $words = $session->words - 1;
+
         $session->score = $request->score;
         $session->words = $words;
         if ($words === 0) {
@@ -113,7 +113,7 @@ class WordleController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Score has been set',
+            'message' => 'Score has been set, ' . $words . ' words left.',
         ], 200);
     }
 
