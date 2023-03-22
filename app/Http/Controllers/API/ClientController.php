@@ -25,7 +25,7 @@ class ClientController extends Controller
                 'status' => false,
                 'message' => 'validation error',
                 'errors' => $validator->errors()
-            ], 401);
+            ], 400);
         }
 
         $secretKey = Str::random(64);

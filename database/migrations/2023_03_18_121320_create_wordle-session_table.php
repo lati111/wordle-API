@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('wordle_session', function (Blueprint $table) {
             $table->uuid('uuid')->primary();
-            $table->integer('score')->nullable(true);
+            $table->integer('score')->default(0);
             $table->integer('words')->default(10);
             $table->string('status', 18);
             $table->foreignUuid('user');

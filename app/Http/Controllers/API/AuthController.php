@@ -54,7 +54,7 @@ class AuthController extends Controller
                     'status' => false,
                     'message' => 'validation error',
                     'errors' => 'Email is already taken'
-                ], 401);
+                ], 400);
             }
 
             $user = new User();
