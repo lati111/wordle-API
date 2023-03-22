@@ -110,7 +110,7 @@ class WordleController extends Controller
             ], 400);
         }
 
-        $session->score = $request->score;
+        $session->score = $session->score + $request->score;
         $session->words = $words;
         if ($words === 0) {
             $session->status = "finished";
