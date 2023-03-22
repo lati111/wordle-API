@@ -11,8 +11,7 @@
 - $ docker-compose up -d --detach --build
 - $ docker-compose exec app bash
 - $ composer install
-- $ php artisan migrate__
-You can now close this terminal and use the API!
+- $ php artisan migrate
 
 ### API calls:
 
