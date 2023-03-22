@@ -34,7 +34,7 @@ class WordleController extends Controller
                 'status' => false,
                 'message' => 'validation error',
                 'errors' => $validator->errors()
-            ], 401);
+            ], 400);
         }
 
         $wordCount = 10;
@@ -72,7 +72,6 @@ class WordleController extends Controller
         //| session validation
         $session =
             Session::where("uuid", "=", $session_uuid)
-            ->where("status", "=", "in progress")
             ->where("user", "=", Auth::user()->uuid)
             ->where("client", "=", $client_key);
 
@@ -97,24 +96,41 @@ class WordleController extends Controller
                 'status' => false,
                 'message' => 'validation error',
                 'errors' => $validator->errors()
-            ], 401);
+            ], 400);
         }
 
         //| data submitting
         $session = $session->first();
         $words = $session->words - 1;
+        if ($words < 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => 'This session had already been concluded'
+            ], 400);
+        }
 
         $session->score = $request->score;
         $session->words = $words;
         if ($words === 0) {
-            $session->status = "in progress";
+            $session->status = "finished";
+            $session->save();
+            return response()->json([
+                'status' => true,
+                'message' => 'Score has been set and the session has concluded',
+                'words_left' => 0,
+            ], 200);
+        } else {
+            $session->save();
+            return response()->json([
+                'status' => true,
+                'message' => 'Score has been set.',
+                'words_left' => $words,
+            ], 200);
         }
-        $session->save();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Score has been set, ' . $words . ' words left.',
-        ], 200);
+
+
     }
 
     public function topScore(Request $request, string $client_key) {
@@ -142,7 +158,7 @@ class WordleController extends Controller
                 'status' => false,
                 'message' => 'validation error',
                 'errors' => $validator->errors()
-            ], 401);
+            ], 400);
         }
 
         //| build score query
@@ -188,7 +204,8 @@ class WordleController extends Controller
         $session =
             Session::where("uuid", "=", $session_uuid)
             ->where("user", "=", Auth::user()->uuid)
-            ->where("client", "=", $client_key);
+            ->where("client", "=", $client_key)
+            ->where("status", "=", "finished");;
 
         if ($session->count() === 0) {
             return response()->json([
