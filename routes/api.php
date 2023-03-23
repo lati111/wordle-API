@@ -38,9 +38,12 @@ Route::post('/wordle/{client_key}/newgame', [WordleController::class, 'newGame']
 Route::post('/wordle/{client_key}/setscore/{session_key}', [WordleController::class, 'setScore'])
     ->middleware(['auth:sanctum', 'ability:auth'])
     ->name('wordle.setscore');
-Route::post('/wordle/{client_key}/currentscore/{session_uuid}', [WordleController::class, 'getScore'])
+Route::get('/wordle/{client_key}/currentscore/{session_uuid}', [WordleController::class, 'getScore'])
     ->middleware(['auth:sanctum', 'ability:auth'])
-    ->name('wordle.topscore');
+    ->name('wordle.getscore');
+Route::get('/wordle/{client_key}/currentround/{session_uuid}', [WordleController::class, 'getRound'])
+    ->middleware(['auth:sanctum', 'ability:auth'])
+    ->name('wordle.getround');
 Route::get('/wordle/{client_key}/topscore', [WordleController::class, 'topScore'])
     ->middleware(['auth:sanctum', 'ability:auth'])
     ->name('wordle.topscore');

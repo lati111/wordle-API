@@ -302,7 +302,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'status' => false,
-            'message' => 'Token could not be verified',
+            'message' => 'User token is expired or invalid',
         ], 401);
     }
 

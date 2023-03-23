@@ -101,8 +101,8 @@ class WordleController extends Controller
 
         //| data submitting
         $session = $session->first();
-        $words = $session->words - 1;
-        if ($words < 0) {
+        $round = $session->round + 1;
+        if ($session->round > $session->words || $session->status === "finished") {
             return response()->json([
                 'status' => false,
                 'message' => 'validation error',
@@ -111,21 +111,20 @@ class WordleController extends Controller
         }
 
         $session->score = $session->score + $request->score;
-        $session->words = $words;
-        if ($words === 0) {
+        $session->round = $round;
+        if ($session->round > $session->words) {
             $session->status = "finished";
             $session->save();
             return response()->json([
                 'status' => true,
                 'message' => 'Score has been set and the session has concluded',
-                'words_left' => 0,
             ], 200);
         } else {
             $session->save();
             return response()->json([
                 'status' => true,
                 'message' => 'Score has been set.',
-                'words_left' => $words,
+                'current_round' => $round,
             ], 200);
         }
 
@@ -205,7 +204,7 @@ class WordleController extends Controller
             Session::where("uuid", "=", $session_uuid)
             ->where("user", "=", Auth::user()->uuid)
             ->where("client", "=", $client_key)
-            ->where("status", "=", "finished");;
+            ->where("status", "=", "finished");
 
         if ($session->count() === 0) {
             return response()->json([
@@ -221,6 +220,41 @@ class WordleController extends Controller
             'message' => 'Current score',
             'session_uuid' => $session_uuid,
             'score' => $session->first()->score,
+        ], 200);
+    }
+
+    public function getRound(string $client_key, string $session_uuid) {
+        //| client validation
+        if (Client::where("uuid", "=", $client_key)->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'client error',
+                'errors' => "No client under key '".$client_key."' exists",
+            ], 404);
+        }
+
+        //| session validation
+        $session =
+            Session::where("uuid", "=", $session_uuid)
+            ->where("user", "=", Auth::user()->uuid)
+            ->where("client", "=", $client_key);
+
+        if ($session->count() === 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => "No session under key '".$session_uuid."' exists",
+            ], 404);
+        }
+
+        //| response
+        $session = $session->first();
+        return response()->json([
+            'status' => true,
+            'message' => 'Current round',
+            'session_uuid' => $session_uuid,
+            'session_status' => $session->status,
+            'round' => $session->round,
         ], 200);
     }
 
