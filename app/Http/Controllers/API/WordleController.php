@@ -87,7 +87,7 @@ class WordleController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'score' => 'required|integer|max:250',
+                'score' => 'required|integer|max:250'
             ]
         );
 
