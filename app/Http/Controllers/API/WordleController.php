@@ -212,12 +212,13 @@ class WordleController extends Controller
         }
 
         //| response
+        $session = $session->first();
         return response()->json([
             'status' => true,
             'message' => 'Current score',
             'session_uuid' => $session_uuid,
             'session_status' => $session->status,
-            'score' => $session->first()->score,
+            'score' => $session->score,
         ], 200);
     }
 
