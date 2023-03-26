@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Support\Facades\Log;
 
 class WordleController extends Controller
 {
@@ -87,7 +88,7 @@ class WordleController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'score' => 'required|integer|max:250'
+                'score' => 'required|integer|max:250',
             ]
         );
 
@@ -127,9 +128,6 @@ class WordleController extends Controller
                 'current_round' => $round,
             ], 200);
         }
-
-
-
     }
 
     public function topScore(Request $request, string $client_key) {
@@ -203,8 +201,7 @@ class WordleController extends Controller
         $session =
             Session::where("uuid", "=", $session_uuid)
             ->where("user", "=", Auth::user()->uuid)
-            ->where("client", "=", $client_key)
-            ->where("status", "=", "finished");
+            ->where("client", "=", $client_key);
 
         if ($session->count() === 0) {
             return response()->json([
@@ -219,6 +216,7 @@ class WordleController extends Controller
             'status' => true,
             'message' => 'Current score',
             'session_uuid' => $session_uuid,
+            'session_status' => $session->status,
             'score' => $session->first()->score,
         ], 200);
     }
